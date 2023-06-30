@@ -1,0 +1,70 @@
+#!/bin/bash
+#####################################################################################################
+## createScanResource
+## DESCRIPTION: Creates resources folder under a specified scan so a user may upload files 
+## AUTHOR: Shaney Flores, Washington University in St. Louis
+####################################################################################################
+VERSION=1.0
+if [ "$1" = "-version" ]; then
+	echo 'v'$VERSION
+	exit 0
+fi
+
+manpage() {
+	echo "USAGE: createScanResource [-i|-id] project_id subject_id experiment_id scan_id [-t|-token] alias secret [-r] resource [-s|-site] xnat_site [-p|-params] filename"
+	echo "EX: createScanResource -i CCIR_00675 SUB001 CNDA_E12345 10 -t abc123 zyx987 -r NIFTI -s cnda.wustl.edu -p rawdata.params"
+	echo ""
+	echo "   -i|-id          REQUIRED. CNDA identiers: Project ID, Subject ID, Experiment  ID, Scan ID"
+	echo "   -t|-token       REQUIRED. alias:secret tokens from https://xnat_site/data/services/tokens/issue"
+	echo "   -r              REQUIRED. name of resource file to create"
+	echo "   -s|-site        REQUIRED. XNAT site address (e.g., cnda.wustl.edu or fornix.wustl.edu)"
+	echo "   -p|-params      OPTIONAL. additional parameters for curl call (e.g., \"content=NIFTI&format=NIFTI\")"
+	echo ""
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	manpage
+else
+	while [[ $# -gt 0 ]]; do
+		case "$1" in 
+			-i|-id)
+			proj="$2"
+			subj="$3"
+			session="$4"
+			scanid="$5"
+			;;
+			-t|-token)
+			user_alias="$2"
+			user_secret="$3"
+			;;
+			-r)
+			resource="$2"
+			;;
+			-s|-site)
+			site="$2"
+			;;
+			-p|-params)
+			addl_params="$2"
+			;;
+		esac
+		shift
+	done
+
+	if [ -z "$proj" ] || [ -z "$subj" ] || [ -z "$session" ] || [ -z "$site" ] || [ -z "$user_alias" ] || [ -z "$user_secret" ] || [ -z "$resource" ]; then
+		manpage
+	fi
+
+	if [ -z "$addl_params" ]; then
+		addl_params=""
+	else
+		addl_params="?${addl_params}"
+	fi
+
+	printf " Creating Resource folder: $resource ... "
+
+	# Create scan resource folder
+	curl -s -k -u ${user_alias}:${user_secret} -X PUT "https://${site}/data/archive/projects/${proj}/subjects/${subj}/experiments/${session}/scans/${scanid}/resources/${resource}${addl_params}"
+	printf "\n"
+
+fi

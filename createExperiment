@@ -1,0 +1,60 @@
+#!/bin/bash
+#####################################################################################################
+## createExperiment
+## DESCRIPTION: Creates experiment for specified subject in specified project in 
+## AUTHOR: Shaney Flores, Washington University in St. Louis
+#####################################################################################################
+VERSION=1.0
+if [ "$1" = "-version" ]; then
+	echo 'v'$VERSION
+	exit 0
+fi
+
+manpage() {
+	echo "USAGE: createExperiment [-i|-id] project_id subject_id experiment_id [-t|-token] alias secret [-m] modality [-s|-site] xnat_site"
+	echo "EX: createExperiment -i CCIR_00675 SUBJ001 SUBJ001_MR -t abc123 zyx987 -m mr -s cnda.wustl.edu"
+	echo ""
+	echo "   -i|-id          REQUIRED. CNDA identiers: Project Label, Subject ID, Experiment ID"
+	echo "   -t|-token       REQUIRED. alias:secret tokens from https://xnat_site/data/services/tokens/issue"
+	echo "   -m|-mod         REQUIRED. modality of session: mr, pet, or ct"
+	echo "   -s|-site        REQUIRED. XNAT site address (e.g., cnda.wustl.edu or fornix.wustl.edu)"
+	echo ""
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	manpage
+else
+	while [[ $# -gt 0 ]]; do
+		case "$1" in 
+			-i|-id)
+			proj="$2"
+			subj="$3"
+			session="$4"
+			;;
+			-m|-mod)
+			modality="$2"
+			;;
+			-s|-site)
+			site="$2"
+			;;
+			-t|-token)
+			user_alias="$2"
+			user_secret="$3"
+			;;
+
+		esac
+		shift
+	done
+
+	if [ -z "$proj" ] || [ -z "$subj" ] || [ -z "$session" ] || [ -z "$modality" ] || [ -z "$site" ] || [ -z "$user_alias" ] || [ -z "$user_secret" ]; then
+		manpage
+	fi
+
+	printf " Creating Experiment: $session ... "
+
+	# Create experiment
+	curl -s -k -u ${user_alias}:${user_secret} -w " %{http_code} " -X PUT "https://${site}/data/archive/projects/${proj}/subjects/${subj}/experiments/${session}?xsiType=xnat:${modality}SessionData"
+	printf "\n"
+
+fi

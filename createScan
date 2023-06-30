@@ -1,0 +1,75 @@
+#!/bin/bash
+##############################################################################################
+## createScan
+## DESCRIPTION: Create scan files for sessions
+## AUTHOR: Shaney Flores, Washington University in St. Louis
+##############################################################################################
+VERSION=1.0
+if [ "$1" = "-version" ]; then
+	echo 'v'$VERSION
+	exit 0
+fi
+
+manpage() {
+	echo "USAGE: createScan [-i|-id] project_id subject_id experiment_id [-n|-name] scan_id [-s|-site] xnat_site [-t|-token] alias secret [-m] modality [-p|-params] params"
+	echo "EX: createScan -i CCIR_00675 SUBJ001 SUBJ001_MR -m mr -name 3 -s fornix.wustl.edu -t abc123 zyx987"
+	echo ""
+	echo "   -i|-id          REQUIRED. CNDA identiers: Project ID, Subject ID, Experiment ID"
+	echo "   -s|-site        REQUIRED. XNAT site address (e.g., cnda.wustl.edu or fornix.wustl.edu)"
+    echo "   -m|-mod         REQUIRED. modality of session: mr, pet, or ct"
+    echo "   -n|-name        REQUIRED. name of scan or scan id (e.g., 1, 2, 4_E7)"
+	echo "   -t|-token       REQUIRED. alias:secret tokens from https://xnat_site/data/services/tokens/issue"
+	echo "   -p|-params      OPTIONAL. additional parameters for curl call (e.g., \"&xnat:mrScanData/type=T1&xnat:mrScanData/series_description=T1\")"
+	echo ""
+	echo "N.B. parameter options for -p can be found at https://wiki.xnat.org/display/XAPI/Scan+Data+REST+XML+Path+Shortcuts"
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	manpage
+else
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-i|-id)
+			proj="$2"
+			subj="$3"
+			session="$4"
+			;;
+			-t|-token)
+			user_alias="$2"
+			user_secret="$3"
+			;;
+            -m|-mod)
+			modality="$2"
+			;;
+            -n|-name)
+            scanid="$2"
+            ;;
+			-s|-site)
+			site="$2"
+			;;
+            -p|-params)
+            addl_params="$2"
+            ;;
+		esac
+		shift
+	done
+
+	if [ -z "$proj" ] || [ -z "$subj" ] || [ -z "$session" ] || [ -z "$site" ] || [ -z "$user_alias" ] || [ -z "$user_secret" ] || [ -z "$modality" ] || [ -z "$scanid" ]; then
+		manpage
+	fi
+
+    if [ -z "$addl_params" ]; then 
+        addl_params=""
+	else
+		addl_params="&${addl_params}"
+    fi
+	addl_params="?xsiType=xnat:${modality}ScanData${addl_params}"
+
+	echo -n " Creating scan $scanid ..."
+
+	# Create scan
+	curl -s -k -u ${user_alias}:${user_secret} -w " %{http_code} " -X PUT "https://${site}/data/projects/${proj}/subjects/${subj}/experiments/${session}/scans/${scanid}${addl_params}"
+	printf "\n"
+
+fi

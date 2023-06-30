@@ -1,0 +1,56 @@
+#!/bin/bash
+#####################################################################################################
+## createSubject
+## DESCRIPTION: Creates subject in specified project in CNDA based on arguments
+## AUTHOR: Shaney Flores, Washington University in St. Louis
+#####################################################################################################
+VERSION=1.0
+if [ "$1" = "-version" ]; then
+	echo 'v'$VERSION
+	exit 0
+fi
+
+manpage() {
+	echo "USAGE: createSubject [-i|-id] project_id subject_id [-t|-token] alias secret [-s|-site] xnat_site"
+	echo "EX: createSubject -i CCIR_00675 SUBJECT001 -t abc123 zyx987 -s cnda.wustl.edu"
+	echo ""
+	echo "   -i|-id          REQUIRED. CNDA identiers: Project ID, Subject Label"
+	echo "   -t|-token       REQUIRED. alias:secret tokens from https://xnat_site/data/services/tokens/issue"
+	echo "   -s|-site        REQUIRED. XNAT site address (e.g., cnda.wustl.edu or fornix.wustl.edu)"
+	echo ""
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	manpage
+else
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-i|-id)
+			proj="$2"
+			subj="$3"
+			;;
+			-t|-token)
+			user_alias="$2"
+			user_secret="$3"
+			;;
+			-s)
+			site="$2"
+			;;
+		esac
+		shift
+	done
+
+	if [ -z "$proj" ] || [ -z "$subj" ] || [ -z "$site" ] || [ -z "$user_alias" ] || [ -z "$user_secret" ]; then
+		manpage
+	fi
+
+	echo -n " Creating Subject $subj ..."
+
+	# Create subject
+	curl -s -k -u ${user_alias}:${user_secret} -w " %{http_code} " -X PUT "https://${site}/data/archive/projects/${proj}/subjects/${subj}"
+	printf "\n"
+
+fi
+
+

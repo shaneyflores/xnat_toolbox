@@ -1,0 +1,51 @@
+#!/bin/bash
+#####################################################################################################
+## requestXNAToken
+## DESCRIPTION: Request an alias and secret token from XNAT for batch operations
+## AUTHOR: Shaney Flores, Washington University in St. Louis
+#####################################################################################################
+VERSION=1.0
+if [ "$1" = "-version" ]; then
+	echo 'v'$VERSION
+	exit 0
+fi
+
+manpage() {
+	echo "USAGE: requestXNAToken [-u|-user] username [-s|-site] xnat_site"
+	echo "EX: requestXNAToken -u sflores -s cnda.wustl.edu"
+	echo ""
+	echo "   -u|-user        REQUIRED. username for XNAT server"
+	echo "   -s|-site        REQUIRED. XNAT site address (e.g., cnda.wustl.edu or fornix.wustl.edu)"
+	echo ""
+	echo "N.B. user will be password prompted"
+	echo "N.B. prints alias and secret tokens to command line"
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	manpage
+else
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-u|-user)
+			username="$2"
+            ;;
+			-s|-site)
+			site="$2"
+			;;
+		esac
+		shift
+	done
+
+	if [ -z "$username" ] || [ -z "$site" ]; then
+		manpage
+	fi
+
+	echo " Requesting secret/alias tokens for user $username ..."
+
+	# Request token for batch operations
+	user_token=$( curl -s -k -u ${username} "https://${site}/data/services/tokens/issue" | grep -o '"alias":"[^"]*\|"secret":"[^"]*' | grep -o '[^"]*$' | tr "\n" ":" | sed 's/:$//')
+    echo "alias: $( echo ${user_token} | cut -d: -f1 )"
+	echo "secret: $( echo ${user_token} | cut -d: -f2 )"
+
+fi

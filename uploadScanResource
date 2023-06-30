@@ -1,0 +1,64 @@
+#!/bin/bash
+##############################################################################################
+## uploadScanResource
+## DESCRIPTION: Uploads files to an individual scan's resource folder
+## AUTHOR: Shaney Flores, Washington University in St. Louis
+##############################################################################################
+VERSION=1.0
+if [ "$1" = "-version" ]; then
+	echo 'v'$VERSION
+	exit 0
+fi
+
+manpage() {
+	echo "USAGE: uploadScanResource [-i|-id] project_id subject_id experiment_id scan_id [-t|-token] alias secret [-f|-file] session_file [-r] resource [-s|-site] xnat_site"
+	echo "EX: uploadScanResource -i CCIR_00675 SUBJ001 SUBJ001_MR -t abc123 zyx987 -r NIFTI -f image.nii -s cnda.wustl.edu"
+	echo ""
+	echo "   -i|-id          REQUIRED. CNDA identiers: Project Label, Subject ID, Experiment ID, Scan ID"
+    echo "   -r              REQUIRED. name of the scan's resource folder"
+	echo "   -t|-token       REQUIRED. alias:secret tokens from https://xnat_site/data/services/tokens/issue"
+	echo "   -f|-file        REQUIRED. name of zip file of raw data to upload"
+	echo "   -s|-site        REQUIRED. XNAT site address (e.g., cnda.wustl.edu or fornix.wustl.edu)"
+	echo ""
+	exit 0
+}
+
+if [[ $# -eq 0 ]]; then
+	manpage
+else
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-i|-id)
+            proj="$2"
+            subj="$3"
+			session="$4"
+            scan_id="$5"
+			;;
+			-f|-file)
+			session_file="$2"
+			;;
+            -r)
+            resource="$2"
+            ;;
+			-t|-token)
+			user_alias="$2"
+			user_secret="$3"
+			;;
+			-s|-site)
+			site="$2"
+			;;
+		esac
+		shift
+	done
+
+	if [ -z "$proj" ] || [ -z "$subj" ] || [ -z "$session" ] || [ -z "$scan_id" ] || [ -z "$session_file" ] || [ -z "$site" ] || [ -z "$user_alias" ] || [ -z "$user_secret" ]; then
+		manpage
+	fi
+
+	printf " Uploading ${session_file} to ${session}/${scan_id}/resources ..."
+
+	# upload file to resource folder
+	curl -s -k -u ${user_alias}:${user_secret} -X PUT "https://${site}/data/archive/projects/${proj}/subjects/${subj}/experiments/${session}/scans/${scan_id}/resources/${resource}/files/${session_file}?inbody=true" --data-binary "@${session_file}"
+	printf "\n"
+
+fi
