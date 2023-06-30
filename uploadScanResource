@@ -57,8 +57,9 @@ else
 
 	printf " Uploading ${session_file} to ${session}/${scan_id}/resources ..."
 
+	session_file_base=$( basename $session_file )
 	# upload file to resource folder
-	curl -s -k -u ${user_alias}:${user_secret} -X PUT "https://${site}/data/archive/projects/${proj}/subjects/${subj}/experiments/${session}/scans/${scan_id}/resources/${resource}/files/${session_file}?inbody=true" --data-binary "@${session_file}"
+	curl -s -k -u ${user_alias}:${user_secret} -X PUT "https://${site}/data/archive/projects/${proj}/subjects/${subj}/experiments/${session}/scans/${scan_id}/resources/${resource}/files/${session_file_base}?inbody=true" --data-binary "@${session_file}"
 	printf "\n"
 
 fi
